@@ -2,8 +2,7 @@ import ballerina/log;
 import ballerina/task;
 
 public function main() {
-    getDetailsOfOpenPRs();
-    int intervalInMillis = 36000;
+    int intervalInMillis = 3600000 * 24;
     task:Scheduler timer = new({
          intervalInMillis: intervalInMillis,
          initialDelayInMillis: 0

@@ -6,8 +6,8 @@ import ballerinax/java.jdbc;
 
 jdbc:Client GithubDb = new ({
     url: "jdbc:mysql://localhost:3306/WSO2_ORGANIZATION_DETAILS",
-    username: config:getAsString("UNAME"),
-    password: config:getAsString("PASS"),
+    username: config:getAsString("UserName"),
+    password: config:getAsString("Password"),
     poolOptions: {maximumPoolSize: 10},
     dbOptions: {useSSL: false}
 });
@@ -26,6 +26,17 @@ type Team record {
     string TeamName;
     int NumberOpenPRs;
 
+};
+
+type PR record {
+    string TeamName;
+    string RepoName;
+    string GithubId;
+    string CreatedDate;
+    string UpdatedDate;
+    string CreatedBy;
+    string url;
+    string labels;
 };
 
 function retrieveAllTeams() returns json[] {
@@ -64,38 +75,39 @@ function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
     return [];
 }
 
-function getDetailsOfOpenPRs() {
-    json[] teamJson = retrieveAllTeams();
-    io:println("teamJson", teamJson);
-    int teamIterator = 0;
-    while (teamIterator < teamJson.length()) {
-        int team_id = <int>teamJson[teamIterator].TeamId;
-        int i = 0;
-        int repoIterator = 0;
-        io:println("team_id", team_id);
-        json[] repositories = retrieveAllReposByTeam(team_id);
-        while (repoIterator < repositories.length()) {
-            int no_of_open_pr = 0;
-            int prIterator=0;
-            int RepoId = <int>repositories[repoIterator].RepoId;
-            json[] issues1 = retrieveAllIssuesByRepoId(RepoId);
-            while (prIterator < issues1.length()){
-                string team_name=teamJson[teamIterator].TeamName.toString();
-                string repo_name=repositories[repoIterator].RepoName.toString();
-                string github_id = issues1[prIterator].GITHUB_ID.toString();
-                string create_date=issues1[prIterator].CREATED_DATE.toString();
-                string updated_date=issues1[prIterator].UPDATED_DATE.toString();
-                string created_by=issues1[prIterator].CREATED_BY.toString();
-                string html_url=issues1[prIterator].HTML_URL.toString();
-                string labels=issues1[prIterator].LABELS.toString();
-                string assignee=issues1[prIterator].ASSIGNEES.toString();
-                prIterator=prIterator+1;
-
+function openPrsForTeam(int teamId, string teamName) returns json[]{
+    json[] repositories = retrieveAllReposByTeam(teamId);
+    json[] issuesForTeams  = [];
+    table<PR> PRtable = table {
+            { TeamName, RepoName, GithubId, CreatedDate, UpdatedDate, CreatedBy, url, labels},
+            []
+        };
+    int repoIterator = 0;
+    while (repoIterator < repositories.length()) {
+        int RepoId = <int>repositories[repoIterator].RepoId;
+        json[] prs = retrieveAllIssuesByRepoId(RepoId);
+        int prIterator = 0;
+        while (prIterator < prs.length()) {
+            PR pr = {
+                TeamName: teamName,
+                RepoName: repositories[repoIterator].RepoName.toString(),
+                GithubId: prs[prIterator].GITHUB_ID.toString(),
+                CreatedDate: prs[prIterator].CREATED_DATE.toString(),
+                UpdatedDate: prs[prIterator].UPDATED_DATE.toString(),
+                CreatedBy: prs[prIterator].CREATED_BY.toString(),
+                url: prs[prIterator].HTML_URL.toString(),
+                labels: prs[prIterator].LABELS.toString()
+            };
+            var ret = PRtable.add(pr);
+            if (ret is ()) {
+                io:println("Adding record to table successful");
+            } else {
+                io:println("Adding to table failed: ", ret.reason());
             }
-            no_of_open_pr = issues1.length();
-            i = i + no_of_open_pr;
-            repoIterator = repoIterator + 1;
-         }
-        teamIterator = teamIterator + 1;
-     }
+            prIterator=prIterator+1;
+        }
+        repoIterator = repoIterator + 1;
+    }
+    json prJson = jsonutils:fromTable(PRtable);
+    return <json[]>prJson;
 }

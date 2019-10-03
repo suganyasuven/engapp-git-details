@@ -2,7 +2,7 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/task;
 import ballerina/io;
-//import ballerina/jsonutils;
+import ballerina/jsonutils;
 
 http:Client gitClientEP = new("https://api.github.com" ,
                          config = {
@@ -13,9 +13,8 @@ http:Client gitClientEP = new("https://api.github.com" ,
 
 public function main() {
     updateReposTable();
-    //getAllIssues();
     getAllIssues();
-    int intervalInMillis = 3600000;
+    int intervalInMillis = 3600000 * 24;
     task:Scheduler timer = new({
          intervalInMillis: intervalInMillis,
          initialDelayInMillis: 0
