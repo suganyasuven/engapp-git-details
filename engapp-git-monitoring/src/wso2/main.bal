@@ -14,6 +14,7 @@ http:Client gitClientEP = new("https://api.github.com" ,
 public function main() {
     updateReposTable();
     //getAllIssues();
+    getAllIssues();
     int intervalInMillis = 3600000;
     task:Scheduler timer = new({
          intervalInMillis: intervalInMillis,
@@ -103,5 +104,45 @@ function updateIssuesTable() {
                 }
         }
         orgIterator = orgIterator + 1;
+    }
+}
+
+function getAllIssues() {
+    http:Request req = new;
+    req.addHeader("Authorization", "token " + "<auth-key>");
+    int repoIterator = 0;
+    json[] repositories =retrieveAllReposDetails();
+    while (repoIterator < repositories.length()) {
+        json[] RepoUUIDsJson =  [];
+        int orgId=<int> repositories[repoIterator].OrgId;
+        if(orgId!=-1){
+        var RepoUUIDs = GithubDb->select("SELECT ORG_NAME FROM ENGAPP_GITHUB_ORGANIZATIONS WHERE ORG_ID=?", (), orgId);
+        if (RepoUUIDs is table< record {}>) {
+             RepoUUIDsJson = <json[]> jsonutils:fromTable(RepoUUIDs);
+             io:println(RepoUUIDsJson.toString());
+        } else {
+              log:printError("Error occured while retrieving the product names from Database", err = RepoUUIDs);
+        }
+        string orgName=RepoUUIDsJson[0].ORG_NAME.toString();
+        io:println(orgName);
+        int repoId= <int> repositories[repoIterator].RepoId;
+        io:println("repoId",repoId);
+        string reqURL = "/repos/" + orgName + "/"+ repositories[repoIterator].RepoName.toString() + "/issues?state=all";
+        var response = gitClientEP->get(reqURL, message = req);
+        if (response is http:Response) {
+            string contentType = response.getHeader("Content-Type");
+            int statusCode = response.statusCode;
+            if (statusCode != 404)
+            {
+                var respJson = response.getJsonPayload();
+                if( respJson is json) {
+                    insertIntoIssueTable(<json[]> respJson,repoId);
+                }
+            }
+        } else {
+            log:printError("Error when calling the backend: " );
+        }
+        }
+       repoIterator = repoIterator + 1;
     }
 }
