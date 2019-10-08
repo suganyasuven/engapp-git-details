@@ -66,7 +66,7 @@ function getIssueLabels(json[] issueLabels) returns string {
     string labelss = "";
     while (i < numOfLabels) {
         string lab = issueLabels[i].name.toString();
-        labelss = lab + "," + labelss;
+        labelss = labelss + lab + "," +;
         i = i + 1;
     }
     return labelss;
@@ -157,9 +157,15 @@ function insertIntoIssueTable(json[] response, int repoId) {
         }
         int repo_Id = repoId;
         string createdby = response[repoIterator].user.login.toString();
-        var ret = GithubDb->update("INSERT INTO ENGAPP_GITHUB_ISSUES(GITHUB_ID,REPO_ID,CREATED_DATE,UPDATED_DATE,CLOSED_DATE,
-          CREATED_BY,ISSUE_TYPE,HTML_URL,LABELS,ASSIGNEES) Values (?,?,?,?,?,?,?,?,?,?)", github_id, repo_Id, createdTime, updatedTime, closedTime, createdby, types, html_url, issuelab, issueAss);
-        handleUpdate(ret, "Insert to the repo table with variable parameters");
+        if(isIssueExist(githubId)) {
+           var  ret = GithubDb->update("UPDATE ISSUES SET REPO_ID=?,CREATED_DATE=?,UPDATED_DATE=?,CLOSED_DATE=?,
+                             CREATED_BY=?,ISSUE_TYPE=?, HTML_URL=? ,LABELS=? ,ASSIGNEES = ? WHERE GITHUB_ID=?", github_id, repo_Id, createdTime, updatedTime, closedTime, createdby, types,html_url, issuelab, issueAss, githubId);
+           handleUpdate(ret, "Update repo table with variable parameters");
+        } else {
+            var ret = GithubDb->update("INSERT INTO ENGAPP_GITHUB_ISSUES(GITHUB_ID,REPO_ID,CREATED_DATE,UPDATED_DATE,CLOSED_DATE,
+              CREATED_BY,ISSUE_TYPE,HTML_URL,LABELS,ASSIGNEES) Values (?,?,?,?,?,?,?,?,?,?)", github_id, repo_Id, createdTime, updatedTime, closedTime, createdby, types, html_url, issuelab, issueAss);
+            handleUpdate(ret, "Insert to the repo table with variable parameters");
+        }
         repoIterator = repoIterator + 1;
     }
 }
