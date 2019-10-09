@@ -14,7 +14,8 @@ gmail:GmailConfiguration gmailConfig = {
     }
 };
 
-string mail_template = html_header + summary_table + table_content + html_footer;
+string mail_subject = "[Open Pr's] Open Pull Requests: " + updatedDate;
+string mail_template = html_header + template_header + table_content + date_content + template_footer + html_footer;
 
 string userId = "me";
 gmail:MessageRequest messageRequest = {

@@ -31,11 +31,12 @@ type Team record {
 type PR record {
     string TeamName;
     string RepoName;
-    string GithubId;
-    string CreatedDate;
+    //string GithubId;
+    //string CreatedDate;
     string UpdatedDate;
     string CreatedBy;
     string url;
+    string OpenDays;
     string labels;
 };
 
@@ -79,7 +80,7 @@ function openPrsForTeam(int teamId, string teamName) returns json[]{
     json[] repositories = retrieveAllReposByTeam(teamId);
     json[] issuesForTeams  = [];
     table<PR> PRtable = table {
-            { TeamName, RepoName, GithubId, CreatedDate, UpdatedDate, CreatedBy, url, labels},
+            { TeamName, RepoName, UpdatedDate, CreatedBy, url, OpenDays, labels},
             []
         };
     int repoIterator = 0;
@@ -91,11 +92,12 @@ function openPrsForTeam(int teamId, string teamName) returns json[]{
             PR pr = {
                 TeamName: teamName,
                 RepoName: repositories[repoIterator].RepoName.toString(),
-                GithubId: prs[prIterator].GITHUB_ID.toString(),
-                CreatedDate: prs[prIterator].CREATED_DATE.toString(),
+                //GithubId: prs[prIterator].GITHUB_ID.toString(),
+                //CreatedDate: prs[prIterator].CREATED_DATE.toString(),
                 UpdatedDate: prs[prIterator].UPDATED_DATE.toString(),
                 CreatedBy: prs[prIterator].CREATED_BY.toString(),
                 url: prs[prIterator].HTML_URL.toString(),
+                OpenDays: prs[prIterator].OPEN_DAYS.toString(),
                 labels: prs[prIterator].LABELS.toString()
             };
             var ret = PRtable.add(pr);

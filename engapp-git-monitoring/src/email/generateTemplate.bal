@@ -1,3 +1,5 @@
+import ballerina/time;
+
 string html_header = string `
 <html>
   <head>
@@ -41,11 +43,11 @@ string html_header = string `
         margin: 20px;
       }
 
-
       #openprs td, #openprs th {
         border: 1px solid #ddd;
         padding: 8px;
       }
+
       #openprs tr{
         background-color: #dedede;
       }
@@ -66,56 +68,57 @@ string html_header = string `
   <body>
  `;
 
-string summary_table = string `
+string template_header = string `
    <div id = "headings">
        GitHub Open Pull Request Analyzer
    </div>
    <div id = "subhead">
-     Daily Update of GitHub Open Pull Requests on WSO2 Organization
+     Daily Update of GitHub Open Pull Requests on Teams
    </div>
    <table id="openprs">
-     <tr>
-       <th>WSO2 Teams</th>
-       <th>No of Open PRs</th>
-     </tr>
-     <tr>
-       <td>API Management</td>
-       <td>10</td>
-     </tr>
-     <tr>
-       <td>Enterprise Integrator</td>
-       <td>45</td>
-     </tr>
-     <tr>
-       <td>Ballerina </td>
-       <td>60</td>
-     </tr>
-     <tr>
-       <td>Identity Server</td>
-       <td>80</td>
-     </tr>
-   </table>
-   <div id = "subhead">
-        Details of Open Pull Requests
-   </div>
+   <tr>
+    <th>team Names</th>
+    <th>No of Open PRs</th>
+   </tr>
 `;
+
+string table_title = string `</table>
+                                <div id = "subhead">
+                                    Details of Open Pull Requests
+                                </div>`;
 
 string table_heading = string `
        <table id="openprs">
          <tr>
-           <th>Team Name</th>
-           <th>Repo Name</th>
-           <th>Github Id</th>
-           <th>Created Date</th>
-           <th>Updated Date</th>
-           <th>Created By</th>
-           <th>URL</th>
-           <th>Labels</th>
+           <th style="width:80px">Team Name</th>
+           <th style="width:120px">Repo Name</th>
+           <th style="width:70px">Updated Date</th>
+           <th style="width:80px">Created By</th>
+           <th style="width:240px">URL</th>
+           <th style="width:50px">Open Days</th>
+           <th style="width:80px">Labels</th>
          </tr>
     `;
 
 string table_content = generateTable();
+string updatedTime = time:toString(time:currentTime());
+string updatedDate = updatedTime.substring(0,10);
+string date_content = string `
+                         <div id = "subhead">
+                             Updated Time <br/>`
+                             + updatedDate + "</div><br/>";
+
+string template_footer = string `
+    <div align = center>
+        <img src="https://upload.wikimedia.org/wikipedia/en/5/56/WSO2_Software_Logo.png" width="90" height="37" style="display: block; border: 0px;>
+        <p align="center" >
+            Copyright (c) 2019 | WSO2 Inc.<br/>All Right Reserved.
+        </p>
+    </div>
+`;
+
+
+
 string html_footer = string `
     </body>
     </html> `;
-
