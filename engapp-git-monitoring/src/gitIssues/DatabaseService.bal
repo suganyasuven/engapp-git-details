@@ -138,4 +138,89 @@ function getDetailsOfIssue() returns json[]{
 
 }
 
+function InsertIssueCountDetails(){
+    var OpenIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as OpenIssues FROM ENGAPP_GITHUB_ISSUES WHERE CLOSED_DATE IS NOT NULL", ());
+    var ClosedIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as ClosedIssues FROM ENGAPP_GITHUB_ISSUES WHERE CLOSED_DATE IS NULL", ());
+    if (OpenIssueCount is table< record {}> && ClosedIssueCount is table< record {}>) {
+        json[] OpenIssueCountJson = <json[]>jsonutils:fromTable(OpenIssueCount);
+        json[] ClosedIssueCountJson = <json[]>jsonutils:fromTable(ClosedIssueCount);
+        int openIssues = <int>OpenIssueCountJson[0].OpenIssues;
+        int closedIssues = <int>ClosedIssueCountJson[0].ClosedIssues;
+        var ret = GithubDb->update("INSERT INTO ENGAPP_ISSUE_COUNT(DATE, OPEN_ISSUES, CLOSED_ISSUES) Values (CURDATE(),?,?)", openIssues, closedIssues);
+    } else {
+        log:printError("Error occured while insering the issues count details to the Database");
+    }
+}
+
+function retrieveIssueCountDetails() returns json[]{
+    var IssueCounts = GithubDb->select("SELECT * FROM ENGAPP_ISSUE_COUNT", ());
+    if (IssueCounts is table< record {}>) {
+        int iterator = 0;
+        json[] OpenIssueData = [];
+        json[] ClosedIssueData = [];
+        json[] IssueCountsJson = <json[]>jsonutils:fromTable(IssueCounts);
+        while(iterator < IssueCountsJson.length()) {
+            json openIssue = {
+                date : IssueCountsJson[iterator].DATE.toString(),
+                count: IssueCountsJson[iterator].OPEN_ISSUES.toString()
+            };
+            json closedIssue = {
+                date : IssueCountsJson[iterator].DATE.toString(),
+                count: IssueCountsJson[iterator].CLOSED_ISSUES.toString()
+            };
+            OpenIssueData[iterator] = openIssue;
+            ClosedIssueData[iterator] = closedIssue;
+            iterator = iterator + 1;
+        }
+        json[] IssueCountDetail = [
+            {
+                name: "Open Issues",
+                data: OpenIssueData
+            },
+            {
+                name: "Closed Issues",
+                data: ClosedIssueData
+            }
+            ];
+        return IssueCountDetail;
+    } else {
+        log:printError("Error occured while retrieving the issues count from Database");
+    }
+    return [];
+}
+
+function retrieveIssueAgingDetails() returns json[]{
+    var AgingDetails = GithubDb->select("SELECT DISTINCT(GITHUB_ID), DATEDIFF(CURDATE(), CAST(CREATED_DATE AS DATE)) as OPEN_DAYS FROM ENGAPP_GITHUB_ISSUES WHERE CLOSED_DATE IS NULL", ());
+    if (AgingDetails is table< record {}>) {
+        json[] AgingDetailsJson = <json[]>jsonutils:fromTable(AgingDetails);
+        int iterator = 0;
+        int day = 0;
+        int week = 0;
+        int month = 0;
+        int month3 = 0;
+        int morethan = 0;
+        while(iterator < AgingDetailsJson.length()) {
+            int openDays = <int>AgingDetailsJson[iterator].OPEN_DAYS;
+            if (openDays <= 1) {
+                day = day + 1;
+            } else if (openDays <= 7) {
+                week = week + 1;
+            } else if (openDays <= 30) {
+                month = month + 1;
+            } else if (openDays <= 90) {
+                month3 = month3 + 1;
+            } else {
+                morethan = morethan + 1;
+            }
+            iterator = iterator + 1;
+        }
+        json[] openDaysCount = [["1 Day", day], ["1 Week", week], ["1 Month" ,month], ["3 Months", month3], ["Morethan 3 months", morethan]];
+        return openDaysCount;
+    } else {
+        log:printError("Error occured while insering the issues count details to the Database");
+    }
+    return [];
+}
+
+
 
