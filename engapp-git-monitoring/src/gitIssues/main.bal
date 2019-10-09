@@ -1,6 +1,6 @@
 import ballerina/http;
 import ballerina/log;
-
+import ballerina/task;
 
 http:Client gitClientEP = new("https://api.github.com" ,
                          config = {
@@ -10,6 +10,33 @@ http:Client gitClientEP = new("https://api.github.com" ,
                          }});
 
 listener http:Listener httpListener = new(7777);
+
+public function main() {
+    int intervalInMillis = 3600000 * 24;
+
+    task:Scheduler timer = new({
+        intervalInMillis: intervalInMillis,
+        initialDelayInMillis: 0
+    });
+
+    var attachResult = timer.attach(DBservice);
+    if (attachResult is error) {
+        log:printError("Error attaching the DBservice");
+        return;
+    }
+    var startResult = timer.start();
+    if (startResult is error) {
+        log:printError("Starting the task is failed.");
+        return;
+    }
+}
+
+service DBservice = service {
+    resource function onTrigger() {
+        InsertIssueCountDetails();
+        log:printInfo("Issue Count table is updated");
+    }
+};
 
 @http:ServiceConfig {
     basePath: "/issues",
