@@ -15,7 +15,6 @@
 // under the License.
 
 import ballerina/config;
-import ballerina/io;
 import ballerina/jsonutils;
 import ballerina/log;
 import ballerinax/java.jdbc;
@@ -44,17 +43,17 @@ type Team record {
 
 };
 
-type PR record {
-    string TeamName;
-    string RepoName;
-    //string GithubId;
-    //string CreatedDate;
-    string UpdatedDate;
-    string CreatedBy;
-    string url;
-    string OpenDays;
-    string labels;
-};
+//type PR record {
+//    string TeamName;
+//    string RepoName;
+//    //string GithubId;
+//    //string CreatedDate;
+//    string UpdatedDate;
+//    string CreatedBy;
+//    string url;
+//    string OpenDays;
+//    string labels;
+//};
 
 function retrieveAllTeams() returns json[] {
     var Teams = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_TEAMS", Team);
@@ -79,7 +78,6 @@ function retrieveAllReposByTeam(int TeamId) returns json[] {
 }
 
 function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
-
     string pr = "PR";
     var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE REPO_ID=? AND ISSUE_TYPE=? AND CLOSED_DATE IS NULL", (), RepoId, pr);
 
@@ -95,17 +93,18 @@ function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
 function openPrsForTeam(int teamId, string teamName) returns json[]{
     json[] repositories = retrieveAllReposByTeam(teamId);
     json[] issuesForTeams  = [];
-    table<PR> PRtable = table {
-            { TeamName, RepoName, UpdatedDate, CreatedBy, url, OpenDays, labels},
-            []
-        };
+    json[] prJson = [];
+    //table<PR> PRtable = table {
+    //        { TeamName, RepoName, UpdatedDate, CreatedBy, url, OpenDays, labels},
+    //        []
+    //    };
     int repoIterator = 0;
     while (repoIterator < repositories.length()) {
         int RepoId = <int>repositories[repoIterator].RepoId;
         json[] prs = retrieveAllIssuesByRepoId(RepoId);
         int prIterator = 0;
         while (prIterator < prs.length()) {
-            PR pr = {
+            json pr = {
                 TeamName: teamName,
                 RepoName: repositories[repoIterator].RepoName.toString(),
                 //GithubId: prs[prIterator].GITHUB_ID.toString(),
@@ -116,16 +115,17 @@ function openPrsForTeam(int teamId, string teamName) returns json[]{
                 OpenDays: prs[prIterator].OPEN_DAYS.toString(),
                 labels: prs[prIterator].LABELS.toString()
             };
-            var ret = PRtable.add(pr);
-            if (ret is ()) {
-                io:println("Adding record to table successful");
-            } else {
-                io:println("Adding to table failed: ", ret.reason());
-            }
+            //var ret = PRtable.add(pr);
+            //if (ret is ()) {
+            //    io:println("Adding record to table successful");
+            //} else {
+            //    io:println("Adding to table failed: ", ret.reason());
+            //}
+            prJson.push(pr);
             prIterator=prIterator+1;
         }
         repoIterator = repoIterator + 1;
     }
-    json prJson = jsonutils:fromTable(PRtable);
+    //json prJson = jsonutils:fromTable(PRtable);
     return <json[]>prJson;
 }
