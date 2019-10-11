@@ -49,13 +49,24 @@ function retrieveAllTeams() returns json[] {
         json TeamJson = jsonutils:fromTable(Teams);
         return <json[]>TeamJson;
     } else {
-        log:printError("Error occured while retrieving the organization details from Database", err = Teams);
+        log:printError("Error occured while retrieving the team details from Database", err = Teams);
     }
     return [];
 }
 
 function retrieveAllReposByTeam(int TeamId) returns json[] {
     var Repos = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_REPOS WHERE TEAM_ID=?", Repo, TeamId);
+    if (Repos is table<Repo>) {
+        json RepoJson = jsonutils:fromTable(Repos);
+        return <json[]>RepoJson;
+    } else {
+        log:printError("Error occured while retrieving the repo details from Database", err = Repos);
+    }
+    return [];
+}
+
+function retrieveAllRepos() returns json[] {
+    var Repos = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_REPOS", Repo);
     if (Repos is table<Repo>) {
         json RepoJson = jsonutils:fromTable(Repos);
         return <json[]>RepoJson;
@@ -74,7 +85,7 @@ function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
         json IssueJson = jsonutils:fromTable(issues);
         return <json[]>IssueJson;
     } else {
-        log:printError("Error occured while retrieving the repo details from Database", err = issues);
+        log:printError("Error occured while retrieving the issues details from Database", err = issues);
     }
     return [];
 }
@@ -206,7 +217,7 @@ function retrieveIssueCountDetails() returns json[]{
 }
 
 function retrieveIssueAgingDetails() returns json[]{
-    var AgingDetails = GithubDb->select("SELECT DISTINCT(GITHUB_ID), DATEDIFF(CURDATE(), CAST(CREATED_DATE AS DATE)) as OPEN_DAYS FROM ENGAPP_GITHUB_ISSUES WHERE CLOSED_DATE IS NULL", ());
+    var AgingDetails = GithubDb->select("SELECT DISTINCT(GITHUB_ID), DATEDIFF(CURDATE(), CAST(CREATED_DATE AS DATE)) as OPEN_DAYS FROM ENGAPP_GITHUB_ISSUES WHERE ISSUE_TYPE LIKE 'ISSUE' AND CLOSED_DATE IS NULL", ());
     if (AgingDetails is table< record {}>) {
         json[] AgingDetailsJson = <json[]>jsonutils:fromTable(AgingDetails);
         int iterator = 0;
@@ -233,10 +244,100 @@ function retrieveIssueAgingDetails() returns json[]{
         json[] openDaysCount = [["1 Day", day], ["1 Week", week], ["1 Month" ,month], ["3 Months", month3], ["Morethan 3 months", morethan]];
         return openDaysCount;
     } else {
-        log:printError("Error occured while insering the issues count details to the Database");
+        log:printError("Error occured while tetrieving the issues aging details to the Database");
     }
     return [];
 }
+
+function openIssuesAgingForTeam() returns json[]{
+    json[] data = [];
+    json[] teams = retrieveAllTeams();
+    json[] issuesForTeams  = [];
+    int teamIterator = 0;
+    while(teamIterator < teams.length()) {
+        int day = 0;
+        int week = 0;
+        int month = 0;
+        int month3 = 0;
+        int morethan = 0;
+        int repoIterator = 0;
+        json[] repositories = retrieveAllReposByTeam(<int> teams[teamIterator].teamId);
+        while (repoIterator < repositories.length()) {
+            int RepoId = <int>repositories[repoIterator].RepoId;
+            json[] prs = retrieveAllIssuesByRepoId(RepoId);
+            int prIterator = 0;
+            while (prIterator < prs.length()) {
+                int openDays = <int>prs[prIterator].OPEN_DAYS;
+                io:println(openDays);
+                if (openDays <= 1) {
+                    day = day + 1;
+                } else if (openDays <= 7) {
+                    week = week + 1;
+                } else if (openDays <= 30) {
+                    month = month + 1;
+                } else if (openDays <= 90) {
+                    month3 = month3 + 1;
+                } else {
+                    morethan = morethan + 1;
+                }
+                prIterator=prIterator+1;
+            }
+            repoIterator = repoIterator + 1;
+        }
+        json teamData = {
+            name : teams[teamIterator].teamName.toString(),
+            data : [["1 Day" , day] , ["1 week", week] , ["1 month", month], ["month 3" , month3], ["morethan 3 months", morethan]]
+        };
+        data.push(teamData);
+        teamIterator = teamIterator + 1;
+    }
+    return data;
+}
+
+function openIssuesAgingForLabels() returns json[]{
+    json[] data = [];
+    json[] repos = retrieveAllRepos();
+    json[] issuesForLabels  = [];
+    string[] labels = ["Severity/Blocker", "Severity/Critical", "Severity/Major"];
+    int labelIterator = 0;
+    while(labelIterator < labels.length()) {
+        int day = 0;
+        int week = 0;
+        int month = 0;
+        int month3 = 0;
+        int morethan = 0;
+        int repoIterator = 0;
+        while(repoIterator < repos.length()) {
+            json[] prs = retrieveAllIssuesByRepoId(<int> repos[repoIterator].RepoId);
+            int prIterator = 0;
+            while (prIterator < prs.length()) {
+                int openDays = <int>prs[prIterator].OPEN_DAYS;
+                io:println(openDays);
+                if (openDays <= 1) {
+                    day = day + 1;
+                } else if (openDays <= 7) {
+                    week = week + 1;
+                } else if (openDays <= 30) {
+                    month = month + 1;
+                } else if (openDays <= 90) {
+                    month3 = month3 + 1;
+                } else {
+                    morethan = morethan + 1;
+                }
+                prIterator=prIterator+1;
+            }
+            repoIterator = repoIterator + 1;
+        }
+        json teamData = {
+            name : labels[labelIterator],
+            data : [["1 Day" , day] , ["1 week", week] , ["1 month", month], ["month 3" , month3], ["morethan 3 months", morethan]]
+        };
+        data.push(teamData);
+        labelIterator = labelIterator + 1;
+    }
+    return data;
+}
+
 
 
 
