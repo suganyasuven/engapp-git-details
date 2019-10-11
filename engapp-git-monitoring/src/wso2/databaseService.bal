@@ -1,3 +1,19 @@
+//Copyright (c) 2019, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+//
+// WSO2 Inc. licenses this file to you under the Apache License,
+// Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 import ballerinax/java.jdbc;
 import ballerina/config;
 import ballerina/log;
@@ -6,8 +22,8 @@ import ballerina/io;
 
 jdbc:Client GithubDb = new({
         url: "jdbc:mysql://localhost:3306/WSO2_ORGANIZATION_DETAILS",
-        username: config:getAsString("UserName"),
-        password: config:getAsString("Password"),
+        username: config:getAsString("UNAME"),
+        password: config:getAsString("PASSWORD"),
         poolOptions: { maximumPoolSize: 10 },
         dbOptions: { useSSL: false }
     });
@@ -44,7 +60,7 @@ function retrieveAllReposDetails() returns json[] {
         json Repositorysjson = jsonutils:fromTable(Repositorys);
         return <json[]>Repositorysjson;
     } else {
-        log:printError("Error occured while retrieving the product names from Database", err = Repositorys);
+        log:printError("Error occured while retrieving the repo details from Database", err = Repositorys);
     }
     return [];
 }
@@ -132,8 +148,8 @@ function insertIntoIssueTable(json[] response, int repoId) {
         io:println("Count: ", repoIterator);
         io:println("REPOID: ", repoId);
         jdbc:Parameter createdTime = { sqlType: jdbc:TYPE_DATETIME, value: response[repoIterator].created_at.toString()};
-        jdbc:Parameter updatedTime = { sqlType: jdbc:TYPE_DATETIME, value: response[repoIterator].created_at.toString()};
-        jdbc:Parameter closedTime = { sqlType: jdbc:TYPE_DATETIME, value: response[repoIterator].created_at.toString()};
+        jdbc:Parameter updatedTime = { sqlType: jdbc:TYPE_DATETIME, value: response[repoIterator].updated_at.toString()};
+        jdbc:Parameter closedTime = { sqlType: jdbc:TYPE_DATETIME, value: response[repoIterator].closed_at.toString()};
         string html_url = response[repoIterator].html_url.toString();
         string github_id = response[repoIterator].id.toString();
         var issueLabels = response[repoIterator].labels;
@@ -153,7 +169,7 @@ function insertIntoIssueTable(json[] response, int repoId) {
             types = "PR";
         }
         else {
-            types = "issues";
+            types = "ISSUE";
         }
         int repo_Id = repoId;
         string createdby = response[repoIterator].user.login.toString();
