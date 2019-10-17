@@ -39,7 +39,7 @@ type Repo record {
 type Team record {
     int TeamId;
     string TeamName;
-    int NumberOpenPRs;
+    string TeamAbbr;
 
 };
 
@@ -76,10 +76,24 @@ function retrieveAllRepos() returns json[] {
     return [];
 }
 
+function retrieveOpendaysForIssues(int RepoId) returns json[] {
+    string issueType = "ISSUE";
+    var issues = GithubDb->select("SELECT DATEDIFF(CURDATE(), CAST(CREATED_DATE AS DATE)) AS OPEN_DAYS FROM ENGAPP_GITHUB_ISSUES WHERE REPO_ID=? AND ISSUE_TYPE=? AND CLOSED_DATE IS NULL", (), RepoId, issueType);
+    io:println("repoId: ", RepoId);
+    if (issues is table<record {}>) {
+        json IssueJson = jsonutils:fromTable(issues);
+        io:println("IssueJson", IssueJson.toString());
+        return <json[]>IssueJson;
+    } else {
+        log:printError("Error occured while retrieving the issue details from Database", err = issues);
+    }
+    return [];
+}
+
 function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
 
-    string issue = "issues";
-    var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE REPO_ID=? AND ISSUE_TYPE=?", (), RepoId, issue);
+    string issueType = "ISSUE";
+    var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE REPO_ID=? AND ISSUE_TYPE=?", (), RepoId, issueType);
 
     if (issues is table<record {}>) {
         json IssueJson = jsonutils:fromTable(issues);
@@ -92,8 +106,8 @@ function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
 
 function retrieveAllIssues() returns json[] {
 
-    string issue = "issues";
-    var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE  ISSUE_TYPE=? AND CLOSED_DATE IS NULL", (),issue);
+    string issueType = "ISSUE";
+    var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE  ISSUE_TYPE=? AND CLOSED_DATE IS NULL", (), issueType);
 
     if (issues is table<record {}>) {
         json IssueJson = jsonutils:fromTable(issues);
@@ -116,12 +130,13 @@ function getDetailsOfIssue() returns json[]{
         int L2issuecount=0;
         int L3issuecount=0;
         int repoIterator = 0;
-        io:println("team_id", team_id);
+
         json[] repositories = retrieveAllReposByTeam(team_id);
         while (repoIterator < repositories.length()) {
         int no_of_issue = 0;
         int issueIterator=0;
         int RepoId = <int>repositories[repoIterator].RepoId;
+
         json[] issues1 = retrieveAllIssuesByRepoId(RepoId);
         while (issueIterator < issues1.length()){
             string team_name=teamJson[teamIterator].TeamName.toString();
@@ -153,7 +168,7 @@ function getDetailsOfIssue() returns json[]{
      }
      teamIssues[teamIterator] = {
 
-        name : teamJson[teamIterator].TeamName.toString(),
+        name : teamJson[teamIterator].TeamAbbr.toString(),
         totalIssueCount :<int>TotalIssueCount,
         L1IssueCount :<int>L1issuecount,
         L2IssueCount :<int>L2issuecount,
@@ -161,22 +176,22 @@ function getDetailsOfIssue() returns json[]{
      };
      teamIterator = teamIterator + 1;
      }
-       return teamIssues;
+     return teamIssues;
 
 }
 
 function InsertIssueCountDetails(){
-    var OpenIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as OpenIssues FROM ENGAPP_GITHUB_ISSUES WHERE CLOSED_DATE IS NOT NULL", ());
-    var ClosedIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as ClosedIssues FROM ENGAPP_GITHUB_ISSUES WHERE CLOSED_DATE IS NULL", ());
-    if (OpenIssueCount is table< record {}> && ClosedIssueCount is table< record {}>) {
-        json[] OpenIssueCountJson = <json[]>jsonutils:fromTable(OpenIssueCount);
-        json[] ClosedIssueCountJson = <json[]>jsonutils:fromTable(ClosedIssueCount);
-        int openIssues = <int>OpenIssueCountJson[0].OpenIssues;
-        int closedIssues = <int>ClosedIssueCountJson[0].ClosedIssues;
-        var ret = GithubDb->update("INSERT INTO ENGAPP_ISSUE_COUNT(DATE, OPEN_ISSUES, CLOSED_ISSUES) Values (CURDATE(),?,?)", openIssues, closedIssues);
-    } else {
-        log:printError("Error occured while insering the issues count details to the Database");
-    }
+     var OpenIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as OpenIssues FROM ENGAPP_GITHUB_ISSUES WHERE ISSUE_TYPE LIKE 'ISSUE' AND CLOSED_DATE IS NOT NULL", ());
+        var ClosedIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as ClosedIssues FROM ENGAPP_GITHUB_ISSUES WHERE ISSUE_TYPE LIKE 'ISSUE' AND CLOSED_DATE IS NULL", ());
+        if (OpenIssueCount is table< record {}> && ClosedIssueCount is table< record {}>) {
+            json[] OpenIssueCountJson = <json[]>jsonutils:fromTable(OpenIssueCount);
+            json[] ClosedIssueCountJson = <json[]>jsonutils:fromTable(ClosedIssueCount);
+            int openIssues = <int>OpenIssueCountJson[0].OpenIssues;
+            int closedIssues = <int>ClosedIssueCountJson[0].ClosedIssues;
+            var ret = GithubDb->update("INSERT INTO ENGAPP_ISSUE_COUNT(DATE, OPEN_ISSUES, CLOSED_ISSUES) Values (CURDATE(),?,?)", openIssues, closedIssues);
+        } else {
+            log:printError("Error occured while insering the issues count details to the Database");
+        }
 }
 
 function retrieveIssueCountDetails() returns json[]{
@@ -241,17 +256,17 @@ function retrieveIssueAgingDetails() returns json[]{
             }
             iterator = iterator + 1;
         }
-        json[] openDaysCount = [["1 Day", day], ["1 Week", week], ["1 Month" ,month], ["3 Months", month3], ["Morethan 3 months", morethan]];
+        json[] openDaysCount = [["1 Day", day], ["1 Week", week], ["1 Month" ,month], ["3 Months", month3], ["More than 3 months", morethan]];
         return openDaysCount;
     } else {
         log:printError("Error occured while tetrieving the issues aging details to the Database");
     }
     return [];
 }
-
 function openIssuesAgingForTeam() returns json[]{
     json[] data = [];
     json[] teams = retrieveAllTeams();
+    io:println(teams.toString());
     json[] issuesForTeams  = [];
     int teamIterator = 0;
     while(teamIterator < teams.length()) {
@@ -261,10 +276,10 @@ function openIssuesAgingForTeam() returns json[]{
         int month3 = 0;
         int morethan = 0;
         int repoIterator = 0;
-        json[] repositories = retrieveAllReposByTeam(<int> teams[teamIterator].teamId);
+        json[] repositories = retrieveAllReposByTeam(<int> teams[teamIterator].TeamId);
         while (repoIterator < repositories.length()) {
-            int RepoId = <int>repositories[repoIterator].RepoId;
-            json[] prs = retrieveAllIssuesByRepoId(RepoId);
+            json[] prs = retrieveOpendaysForIssues(<int>repositories[repoIterator].RepoId);
+            io:println(prs.toString());
             int prIterator = 0;
             while (prIterator < prs.length()) {
                 int openDays = <int>prs[prIterator].OPEN_DAYS;
@@ -285,9 +300,10 @@ function openIssuesAgingForTeam() returns json[]{
             repoIterator = repoIterator + 1;
         }
         json teamData = {
-            name : teams[teamIterator].teamName.toString(),
+            name : teams[teamIterator].TeamName.toString(),
             data : [["1 Day" , day] , ["1 week", week] , ["1 month", month], ["month 3" , month3], ["morethan 3 months", morethan]]
         };
+        io:println(teamData.toString());
         data.push(teamData);
         teamIterator = teamIterator + 1;
     }
@@ -308,7 +324,7 @@ function openIssuesAgingForLabels() returns json[]{
         int morethan = 0;
         int repoIterator = 0;
         while(repoIterator < repos.length()) {
-            json[] prs = retrieveAllIssuesByRepoId(<int> repos[repoIterator].RepoId);
+            json[] prs = retrieveOpendaysForIssues(<int> repos[repoIterator].RepoId);
             int prIterator = 0;
             while (prIterator < prs.length()) {
                 int openDays = <int>prs[prIterator].OPEN_DAYS;
@@ -332,12 +348,12 @@ function openIssuesAgingForLabels() returns json[]{
             name : labels[labelIterator],
             data : [["1 Day" , day] , ["1 week", week] , ["1 month", month], ["month 3" , month3], ["morethan 3 months", morethan]]
         };
+        io:println(teamData.toString());
         data.push(teamData);
         labelIterator = labelIterator + 1;
     }
     return data;
 }
-
 
 
 

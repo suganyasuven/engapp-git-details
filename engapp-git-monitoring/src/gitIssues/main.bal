@@ -55,7 +55,7 @@ service DBservice = service {
 };
 
 @http:ServiceConfig {
-    basePath: "/issues",
+    basePath: "/gitIssues",
     cors: {
         allowOrigins: ["*"]
     }
@@ -88,7 +88,7 @@ service issuesCount on httpListener {
             // Initialize an empty http response message
             http:Response response = new;
             // Invoke retrieveData function to retrieve data from mysql database
-            json agingDetails = retrieveIssueAgingDetails();
+            json agingDetails = openIssuesAgingForTeam();
             // Send the response back to the client with the code coverage data
             response.setPayload(<@untainted> agingDetails);
             var respondRet = httpCaller->respond(response);
@@ -97,4 +97,22 @@ service issuesCount on httpListener {
                 log:printError("Error responding to the client", err = respondRet);
             }
         }
+
+      @http:ResourceConfig {
+                 methods: ["GET"],
+                 path: "/issueCount"
+         }
+         resource function getIssueCount (http:Caller httpCaller, http:Request request) {
+             // Initialize an empty http response message
+             http:Response response = new;
+             // Invoke retrieveData function to retrieve data from mysql database
+             var allGitIssueCount = getDetailsOfIssue();
+             // Send the response back to the client with the git issue data
+             response.setPayload( allGitIssueCount);
+             var respondRet = httpCaller->respond(response);
+             if (respondRet is error) {
+                 // Log the error for the service maintainers.
+                 log:printError("Error responding to the client", err = respondRet);
+         }
+      }
 }
