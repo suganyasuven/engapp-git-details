@@ -30,8 +30,8 @@ gmail:GmailConfiguration gmailConfig = {
     }
 };
 
-string mail_subject = "[Open Pr's] Open Pull Requests: " + updatedDate;
-string mail_template = html_header + template_header + table_content + date_content + template_footer + html_footer;
+string mail_subject = "[Open Pr's] Open Pull Requests: " + UPDATED_DATE;
+string mail_template = htmlHeader + templateHeader + tableContent + dateContent + templateFooter + htmlFooter;
 
 string userId = "me";
 gmail:MessageRequest messageRequest = {
@@ -43,11 +43,11 @@ gmail:MessageRequest messageRequest = {
    contentType:gmail:TEXT_HTML
 };
 
+gmail:Client gmailClient = new(gmailConfig);
 string messageId = "";
 string threadId = "";
 
 public function sendPREmail() {
-    gmail:Client gmailClient = new(gmailConfig);
     var sendMessageResponse = gmailClient->sendMessage(userId, messageRequest);
     if (sendMessageResponse is [string, string]) {
         // If successful, print the message ID and thread ID.

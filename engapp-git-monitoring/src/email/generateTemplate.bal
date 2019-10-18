@@ -14,9 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/time;
-
-string html_header = string `
+string htmlHeader = string `
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -84,7 +82,7 @@ string html_header = string `
   <body>
  `;
 
-string template_header = string `
+string templateHeader = string `
    <div id = "headings">
        GitHub Open Pull Request Analyzer
    </div>
@@ -98,12 +96,12 @@ string template_header = string `
    </tr>
 `;
 
-string table_title = string `</table>
+string tableTitle = string `</table>
                                 <div id = "subhead">
                                     Details of Open Pull Requests
                                 </div>`;
 
-string table_heading = string `
+string tableHeading = string `
        <table id="openprs">
          <tr>
            <th style="width:80px">Team Name</th>
@@ -116,15 +114,13 @@ string table_heading = string `
          </tr>
     `;
 
-string table_content = generateTable();
-string updatedTime = time:toString(time:currentTime());
-string updatedDate = updatedTime.substring(0,10);
-string date_content = string `
+string tableContent = generateTable();
+string dateContent = string `
                          <div id = "subhead">
                              Updated Time <br/>`
-                             + updatedDate + "</div><br/>";
+                             + UPDATED_DATE + "</div><br/>";
 
-string template_footer = string `
+string templateFooter = string `
     <div align = center>
         <img src="https://upload.wikimedia.org/wikipedia/en/5/56/WSO2_Software_Logo.png" width="90" height="37" style="display: block; border: 0px;>
         <p align="center" >
@@ -133,8 +129,6 @@ string template_footer = string `
     </div>
 `;
 
-
-
-string html_footer = string `
+string htmlFooter = string `
     </body>
     </html> `;

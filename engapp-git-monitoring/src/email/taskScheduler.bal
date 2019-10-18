@@ -14,31 +14,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/log;
 import ballerina/task;
 
-public function main() {
-    int intervalInMillis = 3600000 * 24;
-    task:Scheduler timer = new({
-         intervalInMillis: intervalInMillis,
-         initialDelayInMillis: 0
-    });
+task:AppointmentConfiguration appointmentConfiguration = {
+    appointmentDetails: CRON_EXPRESSION
+};
 
-    service DBservice = service {
-        resource function onTrigger() {
-            sendPREmail();
-        }
-    };
+listener task:Listener appointment = new(appointmentConfiguration);
 
-    var attachResult = timer.attach(DBservice);
-    if (attachResult is error) {
-        log:printError("Error attaching the service.");
-        return;
-    }
-
-    var startResult = timer.start();
-        if (startResult is error) {
-            log:printError("Starting the task is failed.");
-            return;
+service appointmentService on appointment {
+    resource function onTrigger() {
+        sendPREmail();
     }
 }
