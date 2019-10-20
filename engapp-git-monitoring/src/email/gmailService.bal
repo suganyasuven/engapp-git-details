@@ -14,9 +14,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import ballerina/log;
-import wso2/gmail;
 import ballerina/config;
+import wso2/gmail;
+import ballerina/log;
 
 gmail:GmailConfiguration gmailConfig = {
     oauthClientConfig: {

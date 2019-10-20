@@ -43,6 +43,7 @@ type Team record {
 
 };
 
+//Retrieves the team details from the database
 function retrieveAllTeams() returns json[] {
     var Teams = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_TEAMS", Team);
     if (Teams is table<Team>) {
@@ -54,6 +55,7 @@ function retrieveAllTeams() returns json[] {
     return [];
 }
 
+//Retrieves the repo details from the database for the given teamId
 function retrieveAllReposByTeam(int TeamId) returns json[] {
     var Repos = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_REPOS WHERE TEAM_ID=?", Repo, TeamId);
     if (Repos is table<Repo>) {
@@ -65,6 +67,7 @@ function retrieveAllReposByTeam(int TeamId) returns json[] {
     return [];
 }
 
+//Retrieves the repo details from the database
 function retrieveAllRepos() returns json[] {
     var Repos = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_REPOS", Repo);
     if (Repos is table<Repo>) {
@@ -76,6 +79,7 @@ function retrieveAllRepos() returns json[] {
     return [];
 }
 
+//Retrieves the open days for each for open issue from the database
 function retrieveOpendaysForIssues(int RepoId) returns json[] {
     string issueType = "ISSUE";
     var issues = GithubDb->select("SELECT DATEDIFF(CURDATE(), CAST(CREATED_DATE AS DATE)) AS OPEN_DAYS FROM ENGAPP_GITHUB_ISSUES WHERE REPO_ID=? AND ISSUE_TYPE=? AND CLOSED_DATE IS NULL", (), RepoId, issueType);
@@ -90,8 +94,8 @@ function retrieveOpendaysForIssues(int RepoId) returns json[] {
     return [];
 }
 
+//Retrieves the issue details from the database for given repo Id
 function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
-
     string issueType = "ISSUE";
     var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE REPO_ID=? AND ISSUE_TYPE=?", (), RepoId, issueType);
 
@@ -104,11 +108,10 @@ function retrieveAllIssuesByRepoId(int RepoId) returns json[] {
     return [];
 }
 
+//Retrieves open Issues Details
 function retrieveAllIssues() returns json[] {
-
     string issueType = "ISSUE";
     var issues = GithubDb->select("SELECT * FROM ENGAPP_GITHUB_ISSUES WHERE  ISSUE_TYPE=? AND CLOSED_DATE IS NULL", (), issueType);
-
     if (issues is table<record {}>) {
         json IssueJson = jsonutils:fromTable(issues);
         return <json[]>IssueJson;
@@ -118,9 +121,9 @@ function retrieveAllIssues() returns json[] {
     return [];
 }
 
+//Get details of issue counts in terms of issue labels for each team
 function getDetailsOfIssue() returns json[]{
     json[] teamJson = retrieveAllTeams();
-    json[] issueCountByTeam = [];
     int teamIterator = 0;
     json[] teamIssues = [];
     while (teamIterator < teamJson.length()) {
@@ -177,9 +180,9 @@ function getDetailsOfIssue() returns json[]{
      teamIterator = teamIterator + 1;
      }
      return teamIssues;
-
 }
 
+//Inserts the number of open and closed issue count every day
 function InsertIssueCountDetails(){
      var OpenIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as OpenIssues FROM ENGAPP_GITHUB_ISSUES WHERE ISSUE_TYPE LIKE 'ISSUE' AND CLOSED_DATE IS NOT NULL", ());
         var ClosedIssueCount = GithubDb->select("SELECT COUNT(DISTINCT(GITHUB_ID)) as ClosedIssues FROM ENGAPP_GITHUB_ISSUES WHERE ISSUE_TYPE LIKE 'ISSUE' AND CLOSED_DATE IS NULL", ());
@@ -194,6 +197,7 @@ function InsertIssueCountDetails(){
         }
 }
 
+//Retrieves the number of open and closed Issue counts details everyday
 function retrieveIssueCountDetails() returns json[]{
     var IssueCounts = GithubDb->select("SELECT * FROM ENGAPP_ISSUE_COUNT", ());
     if (IssueCounts is table< record {}>) {
@@ -231,6 +235,7 @@ function retrieveIssueCountDetails() returns json[]{
     return [];
 }
 
+//Retrieves the how many number of issues are open for specific periods like day, week, month etc
 function retrieveIssueAgingDetails() returns json[]{
     var AgingDetails = GithubDb->select("SELECT DISTINCT(GITHUB_ID), DATEDIFF(CURDATE(), CAST(CREATED_DATE AS DATE)) as OPEN_DAYS FROM ENGAPP_GITHUB_ISSUES WHERE ISSUE_TYPE LIKE 'ISSUE' AND CLOSED_DATE IS NULL", ());
     if (AgingDetails is table< record {}>) {
@@ -263,6 +268,8 @@ function retrieveIssueAgingDetails() returns json[]{
     }
     return [];
 }
+
+//Retrieves the how many number of issues are open for specific periods like day, week, month etc for each team
 function openIssuesAgingForTeam() returns json[]{
     json[] data = [];
     json[] teams = retrieveAllTeams();
@@ -310,6 +317,7 @@ function openIssuesAgingForTeam() returns json[]{
     return data;
 }
 
+//Retrieves the how many number of issues are open for specific periods like day, week, month etc in terms of issue labels
 function openIssuesAgingForLabels() returns json[]{
     json[] data = [];
     json[] repos = retrieveAllRepos();

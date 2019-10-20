@@ -16,8 +16,8 @@
 
 //import ballerina/config;
 import ballerina/jsonutils;
-import ballerina/log;
 import ballerinax/java.jdbc;
+import ballerina/log;
 
 jdbc:Client githubDb = new ({
     url: "jdbc:mysql://localhost:3306/WSO2_ORGANIZATION_DETAILS",
@@ -81,11 +81,11 @@ function openPrsForTeam(int teamId, string teamName) returns json[]?{
                     prJson.push(prDetail);
                 }
             } else {
-                log:printError("Error occured while retrieving the issue details from Database", prs);
+                log:printError("Error occured while retrieving the issue details from Database", err = prs);
             }
         }
         return <json[]>prJson;
     } else {
-        log:printError("Error occured while retrieving the open pr details from Database");
+        log:printError("Error occured while retrieving the repo details from Database", err = repositories);
     }
 }
