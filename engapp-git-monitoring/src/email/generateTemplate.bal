@@ -53,8 +53,9 @@ string htmlHeader = string `
       #openprs {
         font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
         border-collapse: collapse;
-        width: 100%;
         margin: 20px;
+        font-weight: 200px;
+        font-size: 14px;
       }
 
       #openprs td, #openprs th {
@@ -73,7 +74,7 @@ string htmlHeader = string `
       #openprs th {
         padding-top: 12px;
         padding-bottom: 12px;
-        text-align: left;
+        text-align: center;
         background-color: #cecece;
         color: #044767;
       }
@@ -87,12 +88,13 @@ string templateHeader = string `
        GitHub Open Pull Request Analyzer
    </div>
    <div id = "subhead">
-     Daily Update of GitHub Open Pull Requests on Teams
+     Weekly Update of GitHub Open Pull Requests on Teams
    </div>
+   <div align = "center">
    <table id="openprs">
    <tr>
-    <th>team Names</th>
-    <th>No of Open PRs</th>
+    <th style="width:240px">team Names</th>
+    <th style="width:120px">No of Open PRs</th>
    </tr>
 `;
 
@@ -102,7 +104,7 @@ string tableTitle = string `</table>
                                 </div>`;
 
 string tableHeading = string `
-       <table id="openprs">
+       <table id="openprs" width="100%">
          <tr>
            <th style="width:80px">Team Name</th>
            <th style="width:120px">Repo Name</th>

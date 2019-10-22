@@ -18,13 +18,6 @@ import ballerina/http;
 import ballerina/log;
 import ballerina/task;
 
-http:Client gitClientEP = new("https://api.github.com" ,
-                         config = {
-                             followRedirects:{
-                              enabled: true,
-                              maxCount: 5
-                         }});
-
 listener http:Listener httpListener = new(7777);
 
 task:AppointmentConfiguration appointmentConfiguration = {
@@ -36,7 +29,7 @@ listener task:Listener appointment = new(appointmentConfiguration);
 service appointmentService on appointment {
     resource function onTrigger() {
         InsertIssueCountDetails();
-                log:printInfo("Issue Count table is updated");
+        log:printInfo("Issue Count table is updated");
     }
 }
 

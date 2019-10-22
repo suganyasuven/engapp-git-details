@@ -19,13 +19,13 @@
 import ballerinax/java.jdbc;
 import ballerina/jsonutils;
 import ballerina/log;
-//import ballerina/io;
+import ballerina/config;
 
 
 jdbc:Client githubDb = new({
         url: "jdbc:mysql://localhost:3306/WSO2_ORGANIZATION_DETAILS",
-        username: "root",
-        password: "root",
+        username: config:getAsString("DB_USERNAME"),
+        password: config:getAsString("DB_PASSWORD"),
         dbOptions: { useSSL: false }
     });
 
@@ -36,30 +36,31 @@ function retrieveAllOrganizations() returns json[]? {
         json organizationJson = jsonutils:fromTable(organizations);
             return <json[]>organizationJson;
     } else {
-        log:printError("Error occured while retrieving the organization details from Database",
+        log:printError("Error occured while retrieving the organization details: ",
         err = organizations);
     }
 }
 
-//Retrieves repo details from the database
+//Retrieves repository details from the database
 function retrieveAllReposDetails() returns json[]? {
     var repositories = githubDb->select(RETRIEVE_REPOSITORIES, ());
     if (repositories is table<record {}>) {
         json repositoriesJson = jsonutils:fromTable(repositories);
         return <json[]>repositoriesJson;
     } else {
-        log:printError("Error occured while retrieving the repo details from Database", err = repositories);
+        log:printError("Error occured while retrieving the repository details: ", err = repositories);
     }
 }
 
-//Retrieves repo details from the database for a given Organization Id
+//Retrieves repository details from the database for a given Organization Id
 function retrieveAllRepos(int orgId) returns json[]? {
     var repositories = githubDb->select(RETRIEVE_REPOSITORIES_BY_ORG_ID, () , orgId);
     if (repositories is table<record {}>) {
         json repositoriesJson = jsonutils:fromTable(repositories);
             return <json[]>repositoriesJson;
     } else {
-        log:printError("Error occured while retrieving the repo details from Database", err = repositories);
+        log:printError("Error occured while retrieving the repository details for a given org Id: ",
+        err = repositories);
     }
 }
 
@@ -83,19 +84,7 @@ function getIssueAssignees(json[] issueAssignees) returns string {
     return assignees;
 }
 
-//Get the date in which repo is updated last
-function retrieveLastUpdatedDate() returns string? {
-    var lastUpdatedDate = githubDb->select(GET_UPDATED_DATE, ());
-    if (lastUpdatedDate is table< record {}>) {
-        json[] lastUpdatedDateJson = <json[]> jsonutils:fromTable(lastUpdatedDate);
-            return  lastUpdatedDateJson[0].date.toString();
-
-    } else {
-        log:printError("Error occured while retrieving the last updated date from Database", err = lastUpdatedDate);
-    }
-}
-
-//Updates the repo table
+//Updates the repository table
 function insertIntoReposTable(json[] response, int orgId) {
      foreach var repository in response {
         boolean flag = true;
@@ -108,23 +97,25 @@ function insertIntoReposTable(json[] response, int orgId) {
             foreach var uuid in repoUuidsJson {
                 if(gitUuid == uuid.GITHUB_ID.toString()){
                     flag = false;
-                    if (repoName != uuid.REPO_NAME.toString() || url != uuid.URL.toString()) {
+                    if (repoName != uuid.REPOSITORY_NAME.toString() || url != uuid.URL.toString()) {
                           var ret = githubDb->update(UPDATE_REPOSITORIES, repoName, url, gitUuid);
+                          handleUpdate(ret, "Updated the repository details with variable parameters");
                      }
                 }
             }
         } else {
-            log:printError("Error occured while updating the repo details to the Database", err = repoUuidsJson);
+            log:printError("Returned is not a json. Error occured while retrieving  the repository details: ",
+            err = repoUuidsJson);
         }
         if(flag){
            var ret = githubDb->update(INSERT_REPOSITORIES,
                                 gitUuid, repoName, orgId, url, teamId);
-           handleUpdate(ret, "Inserted to the repo table with variable parameters");
+           handleUpdate(ret, "Inserted repository details with variable parameters");
         }
     }
 }
 
-//Inserts to the repo table
+//Update to the repo table
 function insertIntoIssueTable(json[] response, int repositoryId) {
     int repoIterator = 0;
     string types;
@@ -147,24 +138,21 @@ function insertIntoIssueTable(json[] response, int repositoryId) {
             assignees = getIssueAssignees(<json[]>issueAssignee);
         }
         int? index = htmlUrl.indexOf("pull");
-        if (index is int) {
-            types = "PR";
-        }
-        else {
-            types = "ISSUE";
-        }
+        types = (index is int) ? "PR" : "ISSUE";
         string createdby = repository.user.login.toString();
         if(isIssueExist(githubId)) {
-           var  ret = githubDb->update(UPDATE_ISSUES, githubId, repositoryId, createdTime, updatedTime, closedTime, createdby, types,htmlUrl, labels, assignees, githubId);
-           handleUpdate(ret, "Update repo table with variable parameters");
+           var  ret = githubDb->update(UPDATE_ISSUES, repositoryId, createdTime, updatedTime, closedTime, createdby,
+            types,htmlUrl, labels, assignees, githubId);
+           handleUpdate(ret, "Updated the issue details with variable parameters");
         } else {
-            var ret = githubDb->update(INSERT_ISSUES, githubId, repositoryId, createdTime, updatedTime, closedTime, createdby, types, htmlUrl, labels, assignees);
-            handleUpdate(ret, "Insert to the repo table with variable parameters");
+            var ret = githubDb->update(INSERT_ISSUES, githubId, repositoryId, createdTime, updatedTime, closedTime,
+            createdby, types, htmlUrl, labels, assignees);
+            handleUpdate(ret, "Inserted the issue details with variable parameters");
         }
     }
 }
 
-//Update the Org Id as -1 if that repo is no more in that organization
+//Update the Org Id as -1 if that repository is no more in that organization
 function updateOrgId (json[] repoJson, int orgId) {
     int id =-1;
     var repoUuidsJson =retrieveAllRepos(orgId);
@@ -179,26 +167,24 @@ function updateOrgId (json[] repoJson, int orgId) {
             }
             if(!exists) {
                 var ret = githubDb->update(UPDATE_ORGID, id, uuid.GITHUB_ID.toString());
-                handleUpdate(ret, "Updated the repo table with variable parameters");
+                handleUpdate(ret, "Updated the org id for the repository with variable parameters");
             }
         }
     } else {
-        log:printError("Error occured while updating the organization id", err = repoUuidsJson);
+        log:printError("Error occured while updating the organization id to the repository", err = repoUuidsJson);
     }
 }
 
 //Checks whether given issue is exists or not
-function isIssueExist (string issueId) returns boolean {
-    var issue = githubDb->select(ISSUE_EXISTS,(),issueId);
+function isIssueExist (string issue_id) returns boolean {
+    var issue = githubDb->select(ISSUE_EXISTS,(),issue_id);
     if (issue is table<record {}>) {
-        json[] issueJson = <json[]>jsonutils:fromTable(issue);
-        //foreach var row in issue {
-            if(<int>issueJson[0].BIT ==1){
-                return true;
-            }
-        //}
+        json issueJson = jsonutils:fromTable(issue);
+        if(issueJson.toString() != ""){
+            return true;
+        }
     } else {
-        log:printError("Error occured while checking the issue details from Database", err = issue);
+        log:printError("Error occured while checking the existence of an issue", err = issue);
     }
     return false;
 }
@@ -208,6 +194,6 @@ function handleUpdate(jdbc:UpdateResult|jdbc:Error status, string message) {
            log:printInfo(message);
     }
     else {
-        log:printInfo("Failed to update: " + status.reason());
+        log:printError("Failed to update the tables: " , status);
     }
 }

@@ -20,12 +20,12 @@ import ballerina/log;
 
 gmail:GmailConfiguration gmailConfig = {
     oauthClientConfig: {
-        accessToken: config:getAsString("ACCESS_TOKEN"),
+        accessToken: config:getAsString("GMAIL_ACCESS_TOKEN"),
         refreshConfig: {
             refreshUrl: gmail:REFRESH_URL,
-            refreshToken: config:getAsString("REFRESH_TOKEN"),
-            clientId: config:getAsString("CLIENT_ID"),
-            clientSecret: config:getAsString("CLIENT_SECRET")
+            refreshToken: config:getAsString("GMAIL_REFRESH_TOKEN"),
+            clientId: config:getAsString("GMAIL_CLIENT_ID"),
+            clientSecret: config:getAsString("GMAIL_CLIENT_SECRET")
         }
     }
 };
@@ -35,9 +35,9 @@ string mail_template = htmlHeader + templateHeader + tableContent + dateContent 
 
 string userId = "me";
 gmail:MessageRequest messageRequest = {
-   recipient: config:getAsString("RECIPIENT"),
-   sender: config:getAsString("SENDER"),
-   cc: config:getAsString("CC"),
+   recipient: config:getAsString("GMAIL_RECIPIENT"),
+   sender: config:getAsString("GMAIL_SENDER"),
+   cc: config:getAsString("GMAIL_CC"),
    subject: "Open PR Analzer",
    messageBody: mail_template,
    contentType:gmail:TEXT_HTML

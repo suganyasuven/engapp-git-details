@@ -22,13 +22,13 @@ public function generateContent(json[] data) returns string {
      string tableData = "";
      foreach var datum in data {
         tableData = tableData +
-        "<tr><td>" + datum.teamName.toString() + "</td>" +
-        "<td>" + datum.repoName.toString() + "</td>" +
-        "<td>" + datum.updatedDate.toString() + "</td>" +
-        "<td>" + datum.createdBy.toString() + "</td>" +
-        "<td>" + datum.url.toString() + "</td>" +
+        "<tr><td align=\"center\">" + datum.teamName.toString() + "</td>" +
+        "<td align=\"center\">" + datum.repoName.toString() + "</td>" +
+        "<td align=\"center\">" + datum.updatedDate.toString() + "</td>" +
+        "<td align=\"center\">" + datum.createdBy.toString() + "</td>" +
+        "<td align=\"left\">" + datum.url.toString() + "</td>" +
         "<td align=\"right\">" + datum.openDays.toString() + "</td>" +
-        "<td>" + datum.labels.toString() + "</td></tr>";
+        "<td align=\"center\">" + datum.labels.toString() + "</td></tr>";
     }
     return tableData;
 }
@@ -55,5 +55,5 @@ public function generateTable() returns string {
     } else {
         log:printError("Error occured while retrieving the issue details from Database", teams);
     }
-    return summaryTable + "</table>" + tableTitle + tableForTeam;
+    return summaryTable + "</table></div>" + tableTitle + tableForTeam;
 }
