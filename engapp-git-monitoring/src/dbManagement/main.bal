@@ -17,7 +17,7 @@
 import ballerina/http;
 import ballerina/log;
 import ballerina/task;
-//import ballerina/config;
+import ballerina/io;
 
 http:Client gitClientEP = new("https://api.github.com" ,
                          config = {
@@ -62,21 +62,37 @@ function updateReposTable() {
     var organizations = retrieveAllOrganizations();
     if(organizations is json[]) {
        foreach var organization in organizations {
-            string reqURL = "/users/" + organization.ORG_NAME.toString() + "/repos";
-            var response = gitClientEP->get(reqURL, message = req);
-            if (response is http:Response) {
-                int statusCode = response.statusCode;
-                if (statusCode == http:STATUS_OK || statusCode == http:STATUS_MOVED_PERMANENTLY)
-                {
-                    var respJson = response.getJsonPayload();
-                    if( respJson is json) {
-                        insertIntoReposTable(<json[]> respJson, <int> organization.ORG_ID);
-                        updateOrgId(<json[]> respJson, <int> organization.ORG_ID);
-                    }
-                }
-            } else {
-                log:printError("Error when calling the github API : "+ response.detail().toString());
-            }
+           //int pageIterator = 1;
+           json[] orgRepos = [];
+           //boolean isEmpty = false;
+               string reqURL = "/users/" + organization.ORG_NAME.toString() + "/repos?&per_page=100";
+               while(reqURL != "") {
+               io:println(reqURL);
+               var response = gitClientEP->get(reqURL, message = req);
+               if (response is http:Response) {
+                   int statusCode = response.statusCode;
+                   if (statusCode == http:STATUS_OK || statusCode == http:STATUS_MOVED_PERMANENTLY)
+                   {
+                       var respJson = response.getJsonPayload();
+                       if( respJson is json) {
+                           json[] repoJson = <json[]> respJson;
+                           orgRepos.push(repoJson);
+                           io:println(orgRepos.length());
+                           insertIntoReposTable(repoJson, <int> organization.ORG_ID);
+                       }
+                   } else {
+                         log:printError("Error when calling the github API: " + response.getJsonPayload().toString());
+                   }
+                   if (response.hasHeader(LINK_HEADER) && response.) {
+		               string linkHeader = response.getHeader(LINK_HEADER);
+	                   reqURL = getNextResourcePath(linkHeader);
+	               }
+               } else {
+                   log:printError("Error when calling the backend : "+ response.detail().toString());
+               }
+               //pageIterator = pageIterator + 1;
+           }
+           updateOrgId(orgRepos, <int> organization.ORG_ID);
         }
     } else {
         log:printError("Returned is not a json. Error occured while retrieving the organization details" ,
@@ -106,6 +122,7 @@ function updateIssuesTable() {
                     foreach var uuid in repoUuidsJson {
                         string reqURL = "/repos/" + organization.ORG_NAME.toString() + "/" +
                         uuid.REPOSITORY_NAME.toString() + "/issues?since=" + <@untainted>lastUpdated + "&state=all";
+                        //req.addHeader("rel", "next");
                         var response = gitClientEP->get(reqURL, message = req);
                         if (response is http:Response) {
                             int statusCode = response.statusCode;
@@ -115,9 +132,11 @@ function updateIssuesTable() {
                                     if(respJson is json) {
                                         insertIntoIssueTable (<json[]> respJson, <int>uuid.REPOSITORY_ID);
                                     }
+                            } else {
+                                log:printError("Error when calling the github API: " + response.getJsonPayload().toString());
                             }
                         } else {
-                            log:printError("Error when calling the github API : "+ response.detail().toString());
+                            log:printError("Error when calling backend : "+ response.detail().toString());
                         }
                     }
                 }
@@ -163,9 +182,11 @@ function getAllIssues() {
                         if( respJson is json) {
                             insertIntoIssueTable(<json[]> respJson,repositoryId);
                         }
-                    }
+                    } else {
+                          log:printError("Error when calling the github API: " + response.getJsonPayload().toString());
+                      }
                 } else {
-                    log:printError("Error when calling the github API : "+ response.detail().toString());
+                    log:printError("Error when calling the backend : "+ response.detail().toString());
                 }
             }
         }
